@@ -7,7 +7,6 @@ pub trait Demuxer {
     fn open(&mut self);
     fn read_headers(&mut self) -> Result<(), Error>;
     fn read_packet(&mut self) -> Result<Packet, Error>;
-    fn close(&mut self);
 }
 
 pub struct DemuxerDescription {
@@ -58,30 +57,43 @@ pub fn probe<'a>(demuxers: &[&'static DemuxerBuilder],
     }
 }
 
+macro_rules! module {
+    {
+        ($name:ident) {
+            open => $open:block
+            read_headers => $read_headers:block
+            read_packet => $read_packet:block
+        }
+
+    } => {
+        interpolate_idents! {
+            struct [$name Demuxer];
+            struct [$name DemuxerBuilder];
+
+            impl Demuxer for [$name Demuxer] {
+                fn open(&mut self) $open
+                fn read_headers(&mut self) -> Result<(), Error> $read_headers
+                fn read_packet(&mut self) -> Result<Packet, Error> $read_packet
+            }
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod test {
     use super::*;
     use std::io::Error;
     use data::packet::Packet;
 
-    struct TestDemuxer;
-
-    impl Demuxer for TestDemuxer {
-        fn open(&mut self) {
-            ()
-        }
-        fn read_headers(&mut self) -> Result<(), Error> {
-            Ok(())
-        }
-        fn read_packet(&mut self) -> Result<Packet, Error> {
-            unimplemented!();
-        }
-        fn close(&mut self) {
-            ()
+    module! {
+        (Test) {
+            open => { () }
+            read_headers => { Ok(()) }
+            read_packet => { unimplemented!() }
         }
     }
 
-    struct TestDemuxerBuilder;
 
     impl DemuxerBuilder for TestDemuxerBuilder {
         fn describe(&self) -> &'static DemuxerDescription {
