@@ -63,8 +63,11 @@ macro_rules! module {
             open => $open:block
             read_headers => $read_headers:block
             read_packet => $read_packet:block
-        }
 
+            describe => $describe:block
+            probe => $probe:block
+            alloc => $alloc:block
+        }
     } => {
         interpolate_idents! {
             struct [$name Demuxer];
@@ -74,6 +77,13 @@ macro_rules! module {
                 fn open(&mut self) $open
                 fn read_headers(&mut self) -> Result<(), Error> $read_headers
                 fn read_packet(&mut self) -> Result<Packet, Error> $read_packet
+            }
+
+            impl DemuxerBuilder for [$name DemuxerBuilder] {
+                fn describe(&self) -> &'static DemuxerDescription $describe
+                fn probe(&self, data: &[u8; PROBE_DATA]) -> u8 $probe
+
+                fn alloc(&self) -> -> Box<Demuxer> $alloc
             }
         }
     }
@@ -91,32 +101,31 @@ mod test {
             open => { () }
             read_headers => { Ok(()) }
             read_packet => { unimplemented!() }
-        }
-    }
 
+            describe => {
+                const D: &'static DemuxerDescription = &DemuxerDescription {
+                    name: "Test",
+                    description: "Test demuxer",
+                    extensions: &["test", "t"],
+                    mime: &["x-application/test"],
+                };
 
-    impl DemuxerBuilder for TestDemuxerBuilder {
-        fn describe(&self) -> &'static DemuxerDescription {
-            const D: &'static DemuxerDescription = &DemuxerDescription {
-                name: "Test",
-                description: "Test demuxer",
-                extensions: &["test", "t"],
-                mime: &["x-application/test"],
-            };
-
-            D
-        }
-        fn probe(&self, data: &[u8; PROBE_DATA]) -> u8 {
-            if data[0] == 0 {
-                Score::MAX as u8
-            } else {
-                0
+                D
             }
-        }
-        fn alloc(&self) -> Box<Demuxer> {
-            let demux = TestDemuxer {};
 
-            box demux
+            probe => {
+                if data[0] == 0 {
+                    Score::MAX as u8
+                } else {
+                    0
+                }
+            }
+
+            alloc => {
+                let demux = TestDemuxer {};
+
+                box demux
+            }
         }
     }
 
