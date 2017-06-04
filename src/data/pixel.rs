@@ -156,11 +156,7 @@ bitflags! {
 }
 
 impl Formaton {
-    pub fn new(model: ColorModel,
-               components: &[Chromaton],
-               flags: Flags,
-               elem_size: u8)
-               -> Self {
+    pub fn new(model: ColorModel, components: &[Chromaton], flags: Flags, elem_size: u8) -> Self {
         let be = flags.contains(BE);
         let alpha = flags.contains(ALPHA);
         let palette = flags.contains(PALETTE);
